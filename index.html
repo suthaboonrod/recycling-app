@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หมีมีถัง - ระบบคำนวณครบวงจร</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS App Interface --- */
+        body { font-family: 'Sarabun', sans-serif; background-color: #e8f5e9; padding: 15px; margin: 0; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        h2 { text-align: center; color: #2e7d32; margin-top: 0; margin-bottom: 5px; }
+        .sub-header { text-align: center; font-size: 14px; color: #555; margin-bottom: 20px; font-style: italic; }
+
+        input, select { width: 100%; padding: 10px; margin-bottom: 5px; border: 1px solid #a5d6a7; border-radius: 6px; box-sizing: border-box; font-size: 16px; font-family: 'Sarabun', sans-serif; }
+        input:focus, select:focus { border-color: #2e7d32; outline: none; background-color: #f1f8e9; }
+
+        .group-select { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; border: 1px solid #81c784; margin-bottom: 2px; }
+        .item-select { background-color: #fff; }
+
+        .item-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .item-table th { background: #2e7d32; color: white; padding: 8px; text-align: left; font-size: 14px; border-radius: 4px 4px 0 0; }
+        .item-table td { padding: 5px 2px; vertical-align: top; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; color: white; font-weight: bold; transition: 0.2s; }
+        .btn-add { background-color: #43a047; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-save { background-color: #1565c0; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-del { background-color: #e57373; padding: 8px; font-size: 14px; width: 100%; border-radius: 4px; color: white; border: none; cursor: pointer;}
+        
+        .summary-box { background: #c8e6c9; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #a5d6a7; }
+        .grand-total { font-size: 24px; font-weight: bold; color: #1b5e20; text-align: right; margin-top: 5px; }
+
+        /* --- Receipt Styles (ส่วนใบเสร็จ) --- */
+        #receipt-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 9999;
+            display: none; justify-content: center; align-items: flex-start;
+            overflow-y: auto; padding-top: 20px;
+        }
+        
+        #receipt-paper {
+            width: 500px; background: white; padding: 30px 30px; box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); font-family: 'Sarabun', sans-serif; position: relative;
+        }
+
+        .rc-header { 
+            position: relative; 
+            text-align: center; 
+            border-bottom: 2px solid #2e7d32; 
+            padding-bottom: 15px; 
+            margin-bottom: 15px; 
+            min-height: 70px; 
+        }
+
+        .rc-real-logo {
+            position: absolute; top: 0; left: 0;
+            height: 65px; width: auto; object-fit: contain;
+        }
+
+        .rc-header-content-wrapper { padding-left: 70px; padding-right: 10px; }
+        .rc-logo-container { text-align: center; margin-bottom: 5px; white-space: nowrap; }
+        .rc-emoji { font-size: 28px; display: inline-block; vertical-align: middle; line-height: 1; }
+        .rc-logo-text { 
+            font-size: 32px; font-weight: bold; color: #1b5e20; 
+            display: inline-block; vertical-align: middle; margin: 0 8px; line-height: 1; 
+        }
+        .rc-slogan { font-size: 16px; font-style: italic; color: #43a047; margin: 5px 0; }
+        .rc-contact { font-size: 14px; color: #333; margin-top: 5px; white-space: nowrap; }
+        
+        .rc-info { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: #555; }
+        .rc-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .rc-table th { background: #1b5e20; color: white; padding: 10px; text-align: left; font-size: 16px; }
+        .rc-table td { border-bottom: 1px solid #ddd; padding: 10px; font-size: 16px; color: #333; }
+        .text-right { text-align: right; }
+        
+        .rc-footer { text-align: right; margin-top: 20px; }
+        .rc-grand-total { font-size: 28px; font-weight: bold; color: #1b5e20; border-top: 2px solid #1b5e20; display: inline-block; padding-top: 5px; margin-top: 5px;}
+
+        .rc-donation-box {
+            margin-top: 20px; padding: 12px;
+            background-color: #fff3e0; border: 1px dashed #ff9800;
+            border-radius: 8px; text-align: left;
+        }
+        .rc-donation-title { font-weight: bold; color: #e65100; font-size: 16px; margin-bottom: 5px; }
+        .rc-donation-score { font-size: 18px; font-weight: bold; color: #e65100; margin-top: 5px; }
+
+         /* CSS กล่อง GHG + ต้นไม้ V3 (แก้ไขไอคอนและจัดวาง) */
+         .rc-ghg-box {
+            margin-top: 15px; padding: 15px;
+            background-color: #e8f5e9; border: 1px solid #81c784;
+            border-radius: 12px; display: flex; align-items: center; 
+            justify-content: center;
+            gap: 15px;
+        }
+        .rc-ghg-left { 
+            display: flex; align-items: center; 
+            flex: 1; 
+            border-right: 2px solid #a5d6a7; 
+            padding-right: 15px;
+            justify-content: flex-end; 
+        }
+        .rc-ghg-icon { font-size: 36px; margin-left: 10px; /* ย้ายไอคอนไปขวาของ text ในฝั่งซ้ายเพื่อให้สมดุลกับฝั่งขวา */ } 
+        /* หมายเหตุ: user อยากให้เปลี่ยนไอคอน เดี๋ยวแก้ใน HTML ด้านล่าง */
+
+        .rc-ghg-content { text-align: right; }
+        .rc-ghg-title { font-weight: bold; color: #2e7d32; font-size: 14px; }
+        .rc-ghg-value { font-size: 22px; font-weight: bold; color: #1b5e20; }
+        .rc-ghg-unit { font-size: 14px; color: #2e7d32; }
+
+        .rc-tree-right { 
+            display: flex;
+            align-items: center;
+            flex: 1.2; 
+            justify-content: flex-start; 
+        }
+        .rc-tree-icon { 
+            font-size: 55px; 
+            display: block; 
+            margin-right: 10px;
+            line-height: 1;
+        }
+        .rc-tree-text-group { display: flex; flex-direction: column; }
+        .rc-tree-label { font-size: 14px; color: #2e7d32; font-weight: bold; }
+        .rc-tree-value { font-size: 24px; font-weight: bold; color: #1b5e20; }
+
+        .close-btn { position: fixed; top: 15px; right: 15px; background: white; color: black; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; border: 2px solid #333; }
+        
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🐻 หมีมีถัง</h2>
+    <div class="sub-header">ระบบคำนวณราคา & ลดคาร์บอน</div>
+    
+    <div style="margin-bottom:15px;">
+        <label>ชื่อลูกค้า:</label>
+        <input type="text" id="customerName" placeholder="ระบุชื่อลูกค้า...">
+    </div>
+
+    <table class="item-table" id="mainTable">
+        <thead>
+            <tr>
+                <th width="40%">รายการรับซื้อ</th>
+                <th width="20%">จำนวน</th>
+                <th width="20%">ราคา</th>
+                <th width="15%" style="text-align:right;">รวม</th>
+                <th width="5%"></th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <button class="btn btn-add" id="btnAddRow">+ เพิ่มรายการ</button>
+
+    <div class="summary-box">
+        <label style="display:flex; align-items:center; cursor:pointer; margin-bottom: 5px;">
+            <input type="checkbox" id="vatCheck" style="width:20px; height:20px; margin-right:10px;"> 
+            <span>คิด VAT 7%</span>
+        </label>
+        <div class="grand-total">
+            ยอดสุทธิ: <span id="showTotal">0.00</span> บาท
+        </div>
+    </div>
+
+    <button class="btn btn-save" id="btnSave">📸 สร้างและโหลดใบเสร็จทันที</button>
+</div>
+
+<div id="loading-overlay">
+    <div class="loader"></div>
+    <div>กำลังสร้างรูปภาพ...</div>
+</div>
+
+<div id="receipt-overlay">
+    <div class="close-btn" onclick="closeOverlay()">X ปิด</div>
+    
+    <div id="receipt-paper">
+        <div class="rc-header">
+            <img id="receiptLogo" src="logo.jpg" alt="Logo" class="rc-real-logo" crossorigin="anonymous" onerror="tryLoadImage(this)">
+            <div class="rc-header-content-wrapper">
+                <div class="rc-logo-container">
+                    <span class="rc-emoji">♻️</span>
+                    <h1 class="rc-logo-text">หมีมีถัง</h1>
+                    <span class="rc-emoji">♻️</span>
+                </div>
+                <p class="rc-slogan">"คุณไม่ได้ขายขยะ แต่คุณให้โอกาส"</p>
+                <div class="rc-contact">📞 089-7923513 &nbsp;|&nbsp; Facebook: หมีมีถัง</div>
+            </div>
+        </div>
+
+        <div class="rc-info">
+            <div id="rc-customer">ลูกค้า: -</div>
+            <div id="rc-date">วันที่: -</div>
+        </div>
+
+        <table class="rc-table">
+            <thead>
+                <tr>
+                    <th>รายการ</th>
+                    <th class="text-right">จำนวน</th>
+                    <th class="text-right">ราคา</th>
+                    <th class="text-right">รวมเงิน</th>
+                </tr>
+            </thead>
+            <tbody id="rc-body"></tbody>
+        </table>
+
+        <div class="rc-footer">
+            <div class="rc-total-row">รวมเป็นเงิน: <span id="rc-subtotal">0.00</span></div>
+            <div id="rc-vat-row" style="display:none; color:#555; font-size:14px; margin-bottom:5px;">
+                VAT 7%: <span id="rc-vat">0.00</span>
+            </div>
+            <div class="rc-grand-total">
+                <span id="rc-total">0.00</span> บาท
+            </div>
+        </div>
+
+        <div class="rc-donation-box">
+            <div class="rc-donation-title">💛 ร่วมบริจาคคืนสู่สังคม</div>
+            <div class="rc-donation-score">
+                ท่านได้รับ: <span id="rc-points">0</span> คะแนน
+            </div>
+            <div class="rc-donation-text" style="font-size:12px;">
+                (คิดเป็นเงินบริจาค <span id="rc-donation-baht">0</span> บาท เพื่อผู้ด้อยโอกาส)
+            </div>
+        </div>
+
+        <div class="rc-ghg-box">
+            <div class="rc-ghg-left">
+                <div class="rc-ghg-content">
+                    <div class="rc-ghg-title">ลดการปล่อยก๊าซฯ</div>
+                    <div>
+                        <span class="rc-ghg-value" id="rc-ghg-total">0.00</span>
+                        <span class="rc-ghg-unit">kgCO₂eq</span>
+                    </div>
+                </div>
+                <div class="rc-ghg-icon">☁️</div> </div>
+            
+            <div class="rc-tree-right">
+                <span class="rc-tree-icon">🌳</span>
+                <div class="rc-tree-text-group">
+                    <div class="rc-tree-label">เทียบเท่าปลูกต้นไม้</div>
+                    <div><span class="rc-tree-value" id="rc-tree-total">0</span> <span style="font-size:16px; color:#1b5e20;">ต้น</span></div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center; font-size:10px; color:#666; margin-top:5px;">*คำนวณจากค่า EF มาตรฐานของ TGO</div>
+        
+        <div style="text-align:center; margin-top:20px; font-size:12px; color:#999;">
+            ขอบคุณที่ร่วมรักษ์โลกและแบ่งปันกับเรา
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ฟังก์ชันช่วยโหลดรูป ---
+    function tryLoadImage(img) {
+        const exts = ['JPG', 'jpeg', 'png'];
+        const currentSrc = img.src;
+        if (currentSrc.endsWith('logo.jpg')) img.src = 'logo.JPG';
+        else if (currentSrc.endsWith('logo.JPG')) img.src = 'logo.jpeg';
+        else if (currentSrc.endsWith('logo.jpeg')) img.src = 'logo.png';
+        else img.style.display = 'none';
+    }
+
+    // --- 1. ฐานข้อมูลกลาง (Master Data) ---
+    const RECYCLE_DB = {
+        "พลาสติก": [
+            { name: "PET ใส", price: 3.5, ef: 1.0310, point: 3 },
+            { name: "PET ใส+เหยียบ", price: 4.0, ef: 1.0310, point: 3 },
+            { name: "PET ใสแกะ+เหยียบ", price: 5.0, ef: 1.0310, point: 3 },
+            { name: "ขวด PET สี", price: 0.5, ef: 1.0310, point: 0 },
+            { name: "ขวด PET สกรีน", price: 0.5, ef: 1.0310, point: 0 },
+            { name: "ขวดนม HDPE", price: 5.0, ef: 1.0310, point: 3 },
+            { name: "พลาสติกสี", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "พลาสติกดำ", price: 1.5, ef: 1.0310, point: 0 },
+            { name: "พลาสติกกรอบ", price: 1.0, ef: 1.0310, point: 0 },
+            { name: "CD", price: 1.0, ef: 1.0310, point: 0 },
+            { name: "ถุงยืด", price: 5.0, ef: 1.0310, point: 6 },
+            { name: "ถุงก๊อบแก๊ป", price: 5.0, ef: 1.0310, point: 6 },
+            { name: "ถุง PP", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "ถุงแกง", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "ถุงรวม", price: 2.0, ef: 1.0310, point: 6 }
+        ],
+        "กระดาษ": [
+            { name: "กระดาษลัง", price: 1.2, ef: 5.6735, point: 10 },
+            { name: "กระดาษขาวดำ", price: 2, ef: 5.6735, point: 5 },
+            { name: "กระดาษขาวดำย่อย", price: 1.5, ef: 5.6735, point: 10 },
+            { name: "กระดาษย่อย", price: 1.0, ef: 5.6735, point: 10 },
+            { name: "แผงไข่", price: 0.5, ef: 5.6735, point: 0 },
+            { name: "กระดาษแกน", price: 0.5, ef: 5.6735, point: 0 }
+        ],
+        "โลหะ": [
+            { name: "เหล็กบาง", price: 4.0, ef: 1.8320, point: 5 },
+            { name: "เหล็กหนา", price: 5.0, ef: 1.8320, point: 5 },
+            { name: "กระป๋องกาแฟ", price: 1.5, ef: 1.8320, point: 5 },
+            { name: "กระป๋องอลูมิเนียม", price: 30.0, ef: 9.1270, point: 1 },
+            { name: "กระป๋องสเปรย์", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "กระป๋องสี", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "ปี๊บ", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "ทองแดง", price: 230.0, ef: 4.3910, point: 0 },
+            { name: "ทองเหลือง", price: 130.0, ef: 4.3910, point: 0 },
+            { name: "อลูมิเนียม", price: 30.0, ef: 9.1270, point: 0 },
+            { name: "สแตนเลส", price: 22.0, ef: 4.3910, point: 0 },
+            { name: "หม้อน้ำ", price: 24.0, ef: 4.3910, point: 0 },
+            { name: "ตะกั่ว", price: 30.0, ef: 4.3910, point: 0 },
+            { name: "ล้อแมกซ์", price: 40.0, ef: 4.3910, point: 0 }
+        ],
+        "แก้ว": [
+            { name: "ขวดแก้วแยกสี", price: 1.0, ef: 0.2760, point: 50 },
+            { name: "ขวดแก้วรวม", price: 0.5, ef: 0.2760, point: 50 },
+            { name: "สิงห์", price: 5.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "ลีโอ", price: 7.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "เหล้าใหญ่", price: 7.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "ช้าง", price: 8.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "Hieneken", price: 9.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "หงษ์ทอง", price: 9.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "เหล้าเล็ก", price: 10.0, ef: 0.2760, point: 0, isCrate: true }
+        ],
+        "อื่นๆ": [
+            { name: "น้ำมันพืชใช้แล้ว", price: 7.0, ef: 0, point: 0 },
+            { name: "TV", price: 20.0, ef: 0, point: 0 },
+            { name: "จอคอม", price: 20.0, ef: 0, point: 0 },
+            { name: "เครื่องซักผ้า", price: 80.0, ef: 0, point: 0 },
+            { name: "ตู้เย็น", price: 120.0, ef: 0, point: 0 },
+            { name: "ของถอด", price: 8.0, ef: 0, point: 0 },
+            { name: "แอร์", price: 8.0, ef: 0, point: 0 },
+            { name: "แบตเล็ก", price: 10.0, ef: 0, point: 0 },
+            { name: "แบตใหญ่", price: 12.0, ef: 0, point: 0 }
+        ]
+    };
+
+    // --- 2. ฟังก์ชันจัดการตาราง ---
+    document.getElementById('btnAddRow').addEventListener('click', addNewRow);
+    document.getElementById('vatCheck').addEventListener('change', reCalculate);
+    document.getElementById('btnSave').addEventListener('click', generateImage);
+
+    function addNewRow() {
+        const tbody = document.getElementById('tableBody');
+        const row = document.createElement('tr');
+        
+        let groupOptions = `<option value="" disabled selected>เลือกหมวด...</option>`;
+        Object.keys(RECYCLE_DB).forEach(group => {
+            groupOptions += `<option value="${group}">${group}</option>`;
+        });
+
+        row.innerHTML = `
+            <td>
+                <select class="group-select" style="width:100%; padding:5px; margin-bottom:5px; font-size:14px;">${groupOptions}</select>
+                <select class="item-select" style="width:100%; padding:8px;" disabled>
+                    <option value="" disabled selected>-- เลือกรายการ --</option>
+                </select>
+            </td>
+            <td><input type="number" class="item-qty" step="0.1" placeholder="0" style="text-align:center;"></td>
+            <td><input type="number" class="item-price" step="0.1" placeholder="" style="text-align:center;"></td>
+            <td style="text-align:right; font-weight:bold; color:#1b5e20;" class="row-sum">0.00</td>
+            <td style="vertical-align:middle;"><button class="btn-del">X</button></td>
+        `;
+        
+        const groupSelect = row.querySelector('.group-select');
+        const itemSelect = row.querySelector('.item-select');
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        const btnDel = row.querySelector('.btn-del');
+
+        priceInput.addEventListener('focus', function() { this.select(); });
+        priceInput.addEventListener('click', function() { this.select(); });
+
+        groupSelect.addEventListener('change', function() {
+            const groupName = this.value;
+            const items = RECYCLE_DB[groupName];
+            
+            let itemOptions = `<option value="" disabled selected>-- เลือกรายการ --</option>`;
+            items.forEach(item => {
+                itemOptions += `<option value="${item.name}" 
+                                data-price="${item.price}" 
+                                data-ef="${item.ef}" 
+                                data-point="${item.point}" 
+                                data-iscrate="${item.isCrate || false}">
+                                ${item.name}
+                                </option>`;
+            });
+            itemSelect.innerHTML = itemOptions;
+            itemSelect.disabled = false;
+        });
+
+        itemSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const defaultPrice = selectedOption.getAttribute('data-price');
+            priceInput.value = defaultPrice;
+            rowCalc(row);
+        });
+
+        [qtyInput, priceInput].forEach(el => el.addEventListener('input', () => rowCalc(row)));
+        btnDel.addEventListener('click', () => { row.remove(); reCalculate(); });
+        
+        tbody.appendChild(row);
+    }
+
+    function rowCalc(row) {
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const total = qty * price;
+        row.querySelector('.row-sum').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        reCalculate();
+    }
+
+    function reCalculate() {
+        const allSums = document.querySelectorAll('.row-sum');
+        let subTotal = 0;
+        allSums.forEach(span => {
+            let val = parseFloat(span.innerText.replace(/,/g, ''));
+            if(!isNaN(val)) subTotal += val;
+        });
+        const hasVat = document.getElementById('vatCheck').checked;
+        let grandTotal = hasVat ? subTotal * 1.07 : subTotal;
+        document.getElementById('showTotal').innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // --- 3. ฟังก์ชันสร้างใบเสร็จ ---
+    function generateImage() {
+        document.getElementById('loading-overlay').style.display = 'flex';
+
+        const now = new Date();
+        document.getElementById('rc-date').innerText = `วันที่: ${now.toLocaleDateString('th-TH')} ${now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`;
+        document.getElementById('rc-customer').innerText = "ลูกค้า: " + (document.getElementById('customerName').value || "-");
+
+        const rcBody = document.getElementById('rc-body');
+        rcBody.innerHTML = ""; 
+        let subTotal = 0, totalPoints = 0, totalGHG = 0;
+
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const itemSelect = row.querySelector('.item-select');
+            if (itemSelect.disabled || itemSelect.selectedIndex <= 0) return;
+
+            const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+            const itemName = itemSelect.value;
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const lineTotal = parseFloat(row.querySelector('.row-sum').innerText.replace(/,/g, ''));
+
+            const pointRule = parseFloat(selectedOption.getAttribute('data-point')) || 0;
+            const efVal = parseFloat(selectedOption.getAttribute('data-ef')) || 0;
+            const isCrate = selectedOption.getAttribute('data-iscrate') === 'true';
+
+            if (itemName && lineTotal > 0) {
+                subTotal += lineTotal;
+                
+                if (pointRule > 0 && qty > 0) {
+                    totalPoints += qty / pointRule;
+                }
+
+                if (efVal > 0 && qty > 0) {
+                    let w = isCrate ? qty * 5 : qty; 
+                    totalGHG += w * efVal;
+                }
+
+                const newTr = document.createElement('tr');
+                newTr.innerHTML = `<td>${itemName}</td><td class="text-right">${qty.toLocaleString()}</td><td class="text-right">${price.toLocaleString()}</td><td class="text-right">${lineTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</td>`;
+                rcBody.appendChild(newTr);
+            }
+        });
+
+        const hasVat = document.getElementById('vatCheck').checked;
+        const vatVal = subTotal * 0.07;
+        const grandTotal = hasVat ? subTotal + vatVal : subTotal;
+
+        document.getElementById('rc-subtotal').innerText = subTotal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        document.getElementById('rc-vat-row').style.display = hasVat ? 'block' : 'none';
+        if(hasVat) document.getElementById('rc-vat').innerText = vatVal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        document.getElementById('rc-total').innerText = grandTotal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        
+        const finalPoints = totalPoints.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rc-points').innerText = finalPoints;
+        document.getElementById('rc-donation-baht').innerText = finalPoints;
+        
+        // แสดงผล GHG
+        document.getElementById('rc-ghg-total').innerText = totalGHG.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        // [EDIT V3] ปัดเศษจำนวนต้นไม้เป็นจำนวนเต็ม (Integer)
+        const treesPlanted = Math.round(totalGHG / 9.5);
+        document.getElementById('rc-tree-total').innerText = treesPlanted.toLocaleString('th-TH');
+
+        const overlay = document.getElementById('receipt-overlay');
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            html2canvas(document.getElementById('receipt-paper'), { 
+                scale: 2.5,
+                useCORS: true,
+                allowTaint: true 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `ใบเสร็จ_หมีมีถัง_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                document.getElementById('loading-overlay').style.display = 'none';
+            }).catch(err => {
+                alert("เกิดข้อผิดพลาด: " + err);
+                document.getElementById('loading-overlay').style.display = 'none';
+            });
+        }, 1500); 
+    }
+
+    function closeOverlay() {
+        document.getElementById('receipt-overlay').style.display = 'none';
+    }
+
+    addNewRow();
+</script>
+
+</body>
+</html>
