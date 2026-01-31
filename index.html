@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mheemecal Lite - ระบบคำนวณมืออาชีพ</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. CORE STYLES & LAYOUT
+           ========================================= */
+        body { font-family: 'Sarabun', sans-serif; background-color: #e8f5e9; padding: 15px; margin: 0; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+        
+        h2 { text-align: center; color: #2e7d32; margin-top: 5px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .emoji-small { font-size: 20px; }
+        .sub-header { text-align: center; font-size: 14px; color: #555; margin-bottom: 20px; font-style: italic; }
+
+        /* =========================================
+           2. INPUTS & TABLES
+           ========================================= */
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #1b5e20; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 5px; border: 1px solid #a5d6a7; border-radius: 6px; box-sizing: border-box; font-size: 16px; font-family: 'Sarabun', sans-serif; }
+        input:focus, select:focus { border-color: #2e7d32; outline: none; background-color: #f1f8e9; }
+
+        .group-select { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; border: 1px solid #81c784; margin-bottom: 2px; }
+        .item-select { background-color: #fff; }
+
+        .item-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .item-table th { background: #2e7d32; color: white; padding: 8px; text-align: left; font-size: 14px; border-radius: 4px 4px 0 0; }
+        .item-table td { padding: 5px 2px; vertical-align: top; }
+        
+        /* =========================================
+           3. BUTTONS
+           ========================================= */
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; color: white; font-weight: bold; transition: 0.2s; }
+        .btn-add { background-color: #43a047; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-save { background-color: #1565c0; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-del { background-color: #e57373; padding: 8px; font-size: 14px; width: 100%; border-radius: 4px; color: white; border: none; cursor: pointer;}
+        
+        .summary-box { background: #c8e6c9; padding: 15px; margin-top: 15px; border-radius: 8px; border: 1px solid #a5d6a7; }
+        .grand-total { font-size: 24px; font-weight: bold; color: #1b5e20; text-align: right; margin-top: 5px; }
+        .footer-credit { text-align: center; margin-top: 20px; font-size: 12px; color: #b0bec5; font-style: italic; }
+
+        /* =========================================
+           4. SETTINGS MODAL
+           ========================================= */
+        .settings-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; background: none; border: none; z-index: 10; transition: transform 0.5s ease; }
+        .settings-btn:hover { transform: rotate(180deg); color: #2e7d32; }
+
+        #settings-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 20000; display: none; justify-content: center; align-items: center; }
+        .settings-box { background: white; padding: 20px; border-radius: 10px; width: 95%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .settings-header { font-size: 18px; font-weight: bold; color: #2e7d32; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;}
+        .close-settings { cursor: pointer; color: #999; font-size: 24px; }
+        .settings-content { flex-grow: 1; overflow-y: auto; }
+        
+        .cat-section { margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background: #fafafa; }
+        .cat-title { font-weight: bold; color: #1b5e20; margin-bottom: 8px; border-bottom: 2px solid #a5d6a7; display: inline-block; padding-right: 10px; }
+        
+        .edit-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+        .edit-input { padding: 5px !important; font-size: 13px !important; margin-bottom: 0 !important; height: 36px; }
+        .edit-name { flex: 2; min-width: 70px; }
+        .edit-num { flex: 1; min-width: 35px; text-align: center; }
+        .btn-row-del { background: #ffcdd2; color: #c62828; border: none; border-radius: 4px; width: 30px; height: 36px; cursor: pointer; font-weight: bold; }
+        
+        .sort-controls { display: flex; flex-direction: column; gap: 2px; margin-right: 5px; }
+        .btn-move { background: #cfd8dc; border: none; border-radius: 3px; font-size: 10px; cursor: pointer; height: 17px; width: 24px; display: flex; align-items: center; justify-content: center; color: #455a64; }
+        .btn-move:hover { background: #b0bec5; }
+        .btn-move:disabled { opacity: 0.3; cursor: default; }
+
+        .btn-cat-add { background-color: #43a047; color: white; border: none; border-radius: 4px; padding: 5px 10px; font-size: 12px; cursor: pointer; width: 100%; margin-top: 5px; }
+        .btn-cat-add:hover { background-color: #2e7d32; }
+        .btn-reset { background-color: #607d8b; color: white; width: 100%; padding: 10px; border-radius: 6px; border:none; margin-top:10px; cursor: pointer;}
+        .col-header { display: flex; gap: 5px; margin-bottom: 5px; font-size: 10px; color: #666; font-weight: bold; text-align: center; }
+        
+        /* =========================================
+           5. RECEIPT (PRINT AREA)
+           ========================================= */
+        #receipt-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 9999;
+            display: none; justify-content: center; align-items: flex-start;
+            overflow-y: auto; padding-top: 20px;
+        }
+        #receipt-paper {
+            width: 500px; background: white; padding: 30px 30px; box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); font-family: 'Sarabun', sans-serif; position: relative;
+        }
+        .rc-header { position: relative; text-align: center; border-bottom: 2px solid #2e7d32; padding-bottom: 15px; margin-bottom: 15px; min-height: 70px; }
+        .rc-real-logo { position: absolute; top: 0; left: 0; height: 65px; width: auto; object-fit: contain; }
+        .rc-header-content-wrapper { padding-left: 70px; padding-right: 10px; }
+        .rc-logo-container { text-align: center; margin-bottom: 5px; white-space: nowrap; }
+        .rc-emoji { font-size: 28px; display: inline-block; vertical-align: middle; line-height: 1; }
+        .rc-logo-text { font-size: 32px; font-weight: bold; color: #1b5e20; display: inline-block; vertical-align: middle; margin: 0 8px; line-height: 1; }
+        .rc-slogan { font-size: 16px; font-style: italic; color: #43a047; margin: 5px 0; }
+        .rc-contact { font-size: 14px; color: #333; margin-top: 5px; white-space: nowrap; }
+        
+        .rc-info { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: #555; }
+        .rc-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .rc-table th { background: #1b5e20; color: white; padding: 10px; text-align: left; font-size: 16px; }
+        .rc-table td { border-bottom: 1px solid #ddd; padding: 10px; font-size: 16px; color: #333; }
+        .text-right { text-align: right; }
+        
+        .rc-footer { text-align: right; margin-top: 20px; }
+        .rc-grand-total { font-size: 28px; font-weight: bold; color: #1b5e20; border-top: 2px solid #1b5e20; display: inline-block; padding-top: 5px; margin-top: 5px;}
+
+        .rc-donation-box { margin-top: 20px; padding: 12px; background-color: #fff3e0; border: 1px dashed #ff9800; border-radius: 8px; text-align: left; }
+        .rc-donation-title { font-weight: bold; color: #e65100; font-size: 16px; margin-bottom: 5px; }
+        .rc-donation-score { font-size: 18px; font-weight: bold; color: #e65100; margin-top: 5px; }
+
+        .rc-ghg-box { margin-top: 15px; padding: 10px; background-color: #e8f5e9; border: 1px solid #81c784; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .rc-ghg-left { display: flex; align-items: center; flex: 1; border-right: 2px solid #a5d6a7; padding-right: 5px; justify-content: flex-end; }
+        .rc-ghg-icon { font-size: 36px; margin-left: 10px; } 
+
+        .rc-ghg-content { text-align: right; }
+        .rc-ghg-title { font-weight: bold; color: #2e7d32; font-size: 12px; }
+        .rc-ghg-value { font-size: 22px; font-weight: bold; color: #1b5e20; }
+        .rc-ghg-unit { font-size: 14px; color: #2e7d32; }
+
+        .rc-tree-right { display: flex; align-items: center; flex: 1.2; justify-content: flex-start; }
+        .rc-tree-icon { font-size: 50px; display: block; margin-right: 10px; line-height: 1; }
+        .rc-tree-text-group { display: flex; flex-direction: column; }
+        .rc-tree-label { font-size: 12px; color: #2e7d32; font-weight: bold; }
+        .rc-tree-value { font-size: 24px; font-weight: bold; color: #1b5e20; }
+
+        .close-btn { position: fixed; top: 15px; right: 15px; background: white; color: black; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; border: 2px solid #333; }
+        
+        /* =========================================
+           6. LOADING OVERLAY
+           ========================================= */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+
+    <h2><span class="emoji-large">📱</span>Mheemecal-Lite<span class="emoji-large">📱</span></h2>
+    <div class="sub-header">ระบบคำนวณราคาสำหรับรถรับซื้อมืออาชีพ</div>
+    
+    <div class="input-group" style="margin-bottom:15px;">
+        <label>ชื่อลูกค้า:</label>
+        <input type="text" id="customerName" placeholder="ระบุชื่อลูกค้า...">
+    </div>
+
+    <table class="item-table" id="mainTable">
+        <thead>
+            <tr>
+                <th width="40%">รายการรับซื้อ</th>
+                <th width="20%">จำนวน</th>
+                <th width="20%">ราคา</th>
+                <th width="15%" style="text-align:right;">รวม</th>
+                <th width="5%"></th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <button class="btn btn-add" id="btnAddRow">+ เพิ่มรายการ</button>
+
+    <div class="summary-box">
+        <label style="display:flex; align-items:center; cursor:pointer; margin-bottom: 5px;">
+            <input type="checkbox" id="vatCheck" style="width:20px; height:20px; margin-right:10px;"> 
+            <span>คิด VAT 7%</span>
+        </label>
+        <div class="grand-total">
+            ยอดสุทธิ: <span id="showTotal">0.00</span> บาท
+        </div>
+    </div>
+
+    <button class="btn btn-save" id="btnSave">📸 สร้างและโหลดใบเสร็จ</button>
+    <div class="footer-credit">Developed By Mheemetung</div>
+</div>
+
+<div id="settings-overlay">
+    <div class="settings-box">
+        <div class="settings-header">
+            <span>⚙️ ตั้งค่า</span>
+            <span class="close-settings" onclick="closeSettings()">X</span>
+        </div>
+        
+        <div class="settings-content" id="settings-content-area"></div>
+        
+        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+             <button class="btn-reset" onclick="resetFactory()">↺ คืนค่าโรงงาน (ล้างข้อมูลที่ตั้งไว้)</button>
+             <div style="text-align:center; font-size:12px; color:#888; margin-top:5px;">*ข้อมูลบันทึกอัตโนมัติ (Auto Save)</div>
+        </div>
+    </div>
+</div>
+
+<div id="loading-overlay"><div class="loader"></div><div>กำลังสร้างรูปภาพ...</div></div>
+
+<div id="receipt-overlay">
+    <div class="close-btn" onclick="closeOverlay()">X ปิด</div>
+    <div id="receipt-paper">
+        <div class="rc-header">
+            <img id="receiptLogo" src="logo.jpg" alt="Logo" class="rc-real-logo" crossorigin="anonymous" onerror="tryLoadImage(this)">
+            <div class="rc-header-content-wrapper">
+                <div class="rc-logo-container">
+                    <span class="rc-emoji">♻️</span><h1 class="rc-logo-text">หมีมีถัง</h1><span class="rc-emoji">♻️</span>
+                </div>
+                <p class="rc-slogan">"คุณไม่ได้ขายขยะ แต่คุณให้โอกาส"</p>
+                <div class="rc-contact">📞 089-7923513 &nbsp;|&nbsp; Facebook: หมีมีถัง</div>
+            </div>
+        </div>
+        <div class="rc-info">
+            <div id="rc-customer">ลูกค้า: -</div><div id="rc-date">วันที่: -</div>
+        </div>
+        <table class="rc-table">
+            <thead><tr><th>รายการ</th><th class="text-right">จำนวน</th><th class="text-right">ราคา</th><th class="text-right">รวมเงิน</th></tr></thead>
+            <tbody id="rc-body"></tbody>
+        </table>
+        <div class="rc-footer">
+            <div class="rc-total-row">รวมเป็นเงิน: <span id="rc-subtotal">0.00</span></div>
+            <div id="rc-vat-row" style="display:none; color:#555; font-size:14px; margin-bottom:5px;">VAT 7%: <span id="rc-vat">0.00</span></div>
+            <div class="rc-grand-total"><span id="rc-total">0.00</span> บาท</div>
+        </div>
+        <div class="rc-donation-box">
+            <div class="rc-donation-title">💛 ร่วมบริจาคคืนสู่สังคม</div>
+            <div class="rc-donation-score">ท่านได้รับ: <span id="rc-points">0</span> คะแนน</div>
+            <div class="rc-donation-text" style="font-size:12px;">(คิดเป็นเงินบริจาค <span id="rc-donation-baht">0</span> บาท เพื่อผู้ด้อยโอกาส)</div>
+        </div>
+        <div class="rc-ghg-box">
+            <div class="rc-ghg-left">
+                <div class="rc-ghg-content"><div class="rc-ghg-title">ลดการปล่อยก๊าซฯ</div><div><span class="rc-ghg-value" id="rc-ghg-total">0.00</span> <span class="rc-ghg-unit">kgCO₂eq</span></div></div>
+                <div class="rc-ghg-icon">☁️</div> 
+            </div>
+            <div class="rc-tree-right">
+                <span class="rc-tree-icon">🌳</span>
+                <div class="rc-tree-text-group"><div class="rc-tree-label">เทียบเท่าปลูกต้นไม้</div><div><span class="rc-tree-value" id="rc-tree-total">0</span> <span style="font-size:16px; color:#1b5e20;">ต้น</span></div></div>
+            </div>
+        </div>
+        <div style="text-align:center; font-size:10px; color:#666; margin-top:5px;">*คำนวณจากค่า EF มาตรฐานของ TGO</div>
+        <div style="text-align:center; margin-top:20px; font-size:12px; color:#999;">ขอบคุณที่ร่วมรักษ์โลกและแบ่งปันกับเรา</div>
+    </div>
+</div>
+
+<script>
+    /** * =======================================================
+     * SECTION 1: CONFIG & CONSTANTS
+     * =======================================================
+     */
+    const DB_KEY = 'mheemecal_db_v1';
+    const AUTOSAVE_KEY = 'mheemecal_autosave_session';
+
+    const DEFAULT_DB = {
+        "พลาสติก": [
+            { name: "PET ใส", price: 3.5, ef: 1.0310, point: 3 },
+            { name: "PET ใส เหยียบแบน", price: 4.0, ef: 1.0310, point: 3 },
+            { name: "PET ใสแกะ เหยียบแบน", price: 5.0, ef: 1.0310, point: 3 },
+            { name: "ขวด PET สี", price: 0.5, ef: 1.0310, point: 0 },
+            { name: "ขวด PET สกรีน", price: 0.5, ef: 1.0310, point: 0 },
+            { name: "ขวดนม HDPE", price: 5.0, ef: 1.0310, point: 3 },
+            { name: "พลาสติกสี", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "พลาสติกดำ", price: 1.5, ef: 1.0310, point: 0 },
+            { name: "พลาสติกกรอบ", price: 1.0, ef: 1.0310, point: 0 },
+            { name: "แผ่น CD", price: 1.0, ef: 1.0310, point: 0 },
+            { name: "ถุงยืด", price: 5.0, ef: 1.0310, point: 6 },
+            { name: "ถุงก๊อบแก๊ป", price: 5.0, ef: 1.0310, point: 6 },
+            { name: "ถุง PP", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "ถุงแกง", price: 3.0, ef: 1.0310, point: 6 },
+            { name: "ถุงรวม", price: 2.0, ef: 1.0310, point: 6 }
+        ],
+        "กระดาษ": [
+            { name: "กระดาษลัง", price: 1.2, ef: 5.6735, point: 10 },
+            { name: "กระดาษขาวดำ", price: 2, ef: 5.6735, point: 5 },
+            { name: "กระดาษขาวดำย่อย", price: 1.5, ef: 5.6735, point: 10 },
+            { name: "กระดาษย่อย", price: 1.0, ef: 5.6735, point: 10 },
+            { name: "แผงไข่", price: 0.5, ef: 5.6735, point: 10 },
+            { name: "กระดาษแกน", price: 0.5, ef: 5.6735, point: 10 },
+            { name: "กล่องนม", price: 1.0, ef: 4.2551, point: 5 }
+        ],
+        "โลหะ": [
+            { name: "เหล็กบาง", price: 4.0, ef: 1.8320, point: 5 },
+            { name: "เหล็กหนา", price: 5.0, ef: 1.8320, point: 5 },
+            { name: "กระป๋องกาแฟ", price: 1.5, ef: 1.8320, point: 5 },
+            { name: "กระป๋องอลูมิเนียม", price: 30.0, ef: 9.1270, point: 1 },
+            { name: "กระป๋องอลูมิเนียม เหยียบแบน", price: 35.0, ef: 9.1270, point: 1 },
+            { name: "กระป๋องสเปรย์", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "กระป๋องสี", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "ปี๊บ", price: 1.0, ef: 1.8320, point: 0 },
+            { name: "ทองแดง", price: 230.0, ef: 4.3910, point: 0 },
+            { name: "ทองเหลือง", price: 130.0, ef: 4.3910, point: 0 },
+            { name: "อลูมิเนียม", price: 30.0, ef: 9.1270, point: 0 },
+            { name: "สแตนเลส", price: 22.0, ef: 4.3910, point: 0 },
+            { name: "หม้อน้ำ", price: 24.0, ef: 4.3910, point: 0 },
+            { name: "ตะกั่ว", price: 30.0, ef: 4.3910, point: 0 },
+            { name: "ล้อแมกซ์", price: 40.0, ef: 4.3910, point: 0 },
+            { name: "ฝาเนียม", price: 10.0, ef: 6.8453, point: 0 }
+        ],
+        "แก้ว": [
+            { name: "ขวดแก้วแยกสี", price: 1.0, ef: 0.2760, point: 50 },
+            { name: "ขวดแก้วรวม", price: 0.5, ef: 0.2760, point: 50 },
+            { name: "สิงห์", price: 5.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "ลีโอ", price: 7.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "เหล้าใหญ่", price: 7.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "ช้าง", price: 8.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "Hieneken", price: 9.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "หงษ์ทอง", price: 9.0, ef: 0.2760, point: 0, isCrate: true },
+            { name: "เหล้าเล็ก", price: 10.0, ef: 0.2760, point: 0, isCrate: true }
+        ],
+        "อื่นๆ": [
+            { name: "น้ำมันพืชใช้แล้ว", price: 7.0, ef: 0, point: 3 },
+            { name: "TV", price: 20.0, ef: 0, point: 0 },
+            { name: "จอคอม", price: 20.0, ef: 0, point: 0 },
+            { name: "เครื่องซักผ้า", price: 80.0, ef: 0, point: 0 },
+            { name: "ตู้เย็น", price: 120.0, ef: 0, point: 0 },
+            { name: "ของถอด", price: 8.0, ef: 0, point: 0 },
+            { name: "แอร์", price: 8.0, ef: 0, point: 0 },
+            { name: "แบตเล็ก", price: 10.0, ef: 0, point: 0 },
+            { name: "แบตใหญ่", price: 12.0, ef: 0, point: 0 }
+        ]
+    };
+
+    /** * =======================================================
+     * SECTION 2: DATA MANAGEMENT (Database)
+     * =======================================================
+     */
+    let RECYCLE_DB = loadDB();
+
+    function loadDB() {
+        const saved = localStorage.getItem(DB_KEY);
+        if (saved) {
+            return JSON.parse(saved);
+        } else {
+            return JSON.parse(JSON.stringify(DEFAULT_DB));
+        }
+    }
+
+    function saveDB() {
+        localStorage.setItem(DB_KEY, JSON.stringify(RECYCLE_DB));
+    }
+
+    function resetFactory() {
+        if(confirm("ยืนยันที่จะล้างข้อมูลที่ตั้งค่าไว้ทั้งหมด และกลับไปเป็นค่าเริ่มต้นโรงงาน?")) {
+            localStorage.removeItem(DB_KEY);
+            location.reload();
+        }
+    }
+
+    /** * =======================================================
+     * SECTION 3: SESSION MANAGEMENT (Auto-Save & Restore)
+     * =======================================================
+     */
+    function saveSession() {
+        const rows = [];
+        document.querySelectorAll('#tableBody tr').forEach(tr => {
+            const group = tr.querySelector('.group-select').value;
+            const item = tr.querySelector('.item-select').value;
+            const qty = tr.querySelector('.item-qty').value;
+            const price = tr.querySelector('.item-price').value;
+
+            // Save only if a category is selected (indicates active row)
+            if (group) {
+                rows.push({ group, item, qty, price });
+            }
+        });
+
+        const data = {
+            customer: document.getElementById('customerName').value,
+            vat: document.getElementById('vatCheck').checked,
+            rows: rows
+        };
+
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    }
+
+    function restoreSession() {
+        const savedData = localStorage.getItem(AUTOSAVE_KEY);
+        if (!savedData) return;
+
+        try {
+            const data = JSON.parse(savedData);
+
+            if (data.customer) document.getElementById('customerName').value = data.customer;
+            if (data.vat !== undefined) document.getElementById('vatCheck').checked = data.vat;
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // Clear default rows
+
+            if (data.rows && data.rows.length > 0) {
+                data.rows.forEach(rowData => {
+                    addNewRow(); // Create structure
+                    
+                    const lastRow = tbody.lastElementChild;
+                    const groupSelect = lastRow.querySelector('.group-select');
+                    const itemSelect = lastRow.querySelector('.item-select');
+                    const qtyInput = lastRow.querySelector('.item-qty');
+                    const priceInput = lastRow.querySelector('.item-price');
+
+                    // Restore & Trigger Change Events
+                    groupSelect.value = rowData.group;
+                    groupSelect.dispatchEvent(new Event('change'));
+
+                    if (rowData.item) {
+                        itemSelect.value = rowData.item;
+                        itemSelect.dispatchEvent(new Event('change'));
+                    }
+
+                    // Overwrite with saved values (in case price was manually edited)
+                    priceInput.value = rowData.price;
+                    qtyInput.value = rowData.qty;
+
+                    rowCalc(lastRow);
+                });
+            } else {
+                addNewRow(); // Default empty row
+            }
+            reCalculate();
+        } catch (e) {
+            console.error("Restore Error:", e);
+            localStorage.removeItem(AUTOSAVE_KEY);
+            addNewRow();
+        }
+    }
+
+    /** * =======================================================
+     * SECTION 4: APP LOGIC (Table & Calculations)
+     * =======================================================
+     */
+    function addNewRow() {
+        const tbody = document.getElementById('tableBody');
+        const row = document.createElement('tr');
+        
+        let groupOptions = `<option value="" disabled selected>เลือกหมวด...</option>`;
+        Object.keys(RECYCLE_DB).forEach(group => {
+            groupOptions += `<option value="${group}">${group}</option>`;
+        });
+
+        row.innerHTML = `
+            <td>
+                <select class="group-select" style="width:100%; padding:5px; margin-bottom:5px; font-size:14px;">${groupOptions}</select>
+                <select class="item-select" style="width:100%; padding:8px;" disabled>
+                    <option value="" disabled selected>-- เลือกรายการ --</option>
+                </select>
+            </td>
+            <td><input type="number" class="item-qty" step="0.1" placeholder="0" style="text-align:center;"></td>
+            <td><input type="number" class="item-price" step="0.1" placeholder="" style="text-align:center;"></td>
+            <td style="text-align:right; font-weight:bold; color:#1b5e20;" class="row-sum">0.00</td>
+            <td style="vertical-align:middle;"><button class="btn-del">X</button></td>
+        `;
+        
+        const groupSelect = row.querySelector('.group-select');
+        const itemSelect = row.querySelector('.item-select');
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        const btnDel = row.querySelector('.btn-del');
+
+        priceInput.addEventListener('focus', function() { this.select(); });
+        priceInput.addEventListener('click', function() { this.select(); });
+
+        groupSelect.addEventListener('change', function() {
+            const groupName = this.value;
+            const items = RECYCLE_DB[groupName];
+            
+            let itemOptions = `<option value="" disabled selected>-- เลือกรายการ --</option>`;
+            items.forEach(item => {
+                itemOptions += `<option value="${item.name}" 
+                                data-price="${item.price}" 
+                                data-ef="${item.ef}" 
+                                data-point="${item.point}" 
+                                data-iscrate="${item.isCrate || false}">
+                                ${item.name}
+                                </option>`;
+            });
+            itemSelect.innerHTML = itemOptions;
+            itemSelect.disabled = false;
+        });
+
+        itemSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const defaultPrice = selectedOption.getAttribute('data-price');
+            priceInput.value = defaultPrice; 
+            rowCalc(row);
+        });
+
+        [qtyInput, priceInput].forEach(el => el.addEventListener('input', () => rowCalc(row)));
+        btnDel.addEventListener('click', () => { row.remove(); reCalculate(); saveSession(); }); // Added saveSession to delete
+        
+        tbody.appendChild(row);
+    }
+
+    function rowCalc(row) {
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const total = qty * price;
+        row.querySelector('.row-sum').innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        reCalculate();
+    }
+
+    function reCalculate() {
+        const allSums = document.querySelectorAll('.row-sum');
+        let subTotal = 0;
+        allSums.forEach(span => {
+            let val = parseFloat(span.innerText.replace(/,/g, ''));
+            if(!isNaN(val)) subTotal += val;
+        });
+        const hasVat = document.getElementById('vatCheck').checked;
+        let grandTotal = hasVat ? subTotal * 1.07 : subTotal;
+        document.getElementById('showTotal').innerText = grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    /** * =======================================================
+     * SECTION 5: IMAGE GENERATION & FINISH
+     * =======================================================
+     */
+    function generateImage() {
+        document.getElementById('loading-overlay').style.display = 'flex';
+
+        const now = new Date();
+        document.getElementById('rc-date').innerText = `วันที่: ${now.toLocaleDateString('th-TH')} ${now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`;
+        document.getElementById('rc-customer').innerText = "ลูกค้า: " + (document.getElementById('customerName').value || "-");
+
+        const rcBody = document.getElementById('rc-body');
+        rcBody.innerHTML = ""; 
+        let subTotal = 0, totalPoints = 0, totalGHG = 0;
+
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            const itemSelect = row.querySelector('.item-select');
+            if (itemSelect.disabled || itemSelect.selectedIndex <= 0) return;
+
+            const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+            const itemName = itemSelect.value;
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const lineTotal = parseFloat(row.querySelector('.row-sum').innerText.replace(/,/g, ''));
+
+            const pointRule = parseFloat(selectedOption.getAttribute('data-point')) || 0;
+            const efVal = parseFloat(selectedOption.getAttribute('data-ef')) || 0;
+            const isCrate = selectedOption.getAttribute('data-iscrate') === 'true';
+
+            if (itemName && lineTotal > 0) {
+                subTotal += lineTotal;
+                if (pointRule > 0 && qty > 0) totalPoints += qty / pointRule;
+                if (efVal > 0 && qty > 0) {
+                    let w = isCrate ? qty * 5 : qty; 
+                    totalGHG += w * efVal;
+                }
+                const newTr = document.createElement('tr');
+                newTr.innerHTML = `<td>${itemName}</td><td class="text-right">${qty.toLocaleString()}</td><td class="text-right">${price.toLocaleString()}</td><td class="text-right">${lineTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</td>`;
+                rcBody.appendChild(newTr);
+            }
+        });
+
+        const hasVat = document.getElementById('vatCheck').checked;
+        const vatVal = subTotal * 0.07;
+        const grandTotal = hasVat ? subTotal + vatVal : subTotal;
+
+        document.getElementById('rc-subtotal').innerText = subTotal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        document.getElementById('rc-vat-row').style.display = hasVat ? 'block' : 'none';
+        if(hasVat) document.getElementById('rc-vat').innerText = vatVal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        document.getElementById('rc-total').innerText = grandTotal.toLocaleString('th-TH', {minimumFractionDigits:2});
+        
+        const finalPoints = totalPoints.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('rc-points').innerText = finalPoints;
+        document.getElementById('rc-donation-baht').innerText = finalPoints;
+        
+        document.getElementById('rc-ghg-total').innerText = totalGHG.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const treesPlanted = Math.round(totalGHG / 9.5);
+        document.getElementById('rc-tree-total').innerText = treesPlanted.toLocaleString('th-TH');
+
+        const overlay = document.getElementById('receipt-overlay');
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            html2canvas(document.getElementById('receipt-paper'), { 
+                scale: 2.5, useCORS: true, allowTaint: true 
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `ใบเสร็จ_หมีมีถัง_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                document.getElementById('loading-overlay').style.display = 'none';
+
+                // --- Finish & Clear Step ---
+                setTimeout(() => {
+                    if(confirm("✅ บันทึกรูปภาพใบเสร็จแล้ว\nต้องการล้างรายการเพื่อเริ่มลูกค้าใหม่หรือไม่?")) {
+                        localStorage.removeItem(AUTOSAVE_KEY);
+                        location.reload();
+                    }
+                }, 800);
+
+            }).catch(err => {
+                alert("เกิดข้อผิดพลาด: " + err);
+                document.getElementById('loading-overlay').style.display = 'none';
+            });
+        }, 1500); 
+    }
+
+    function closeOverlay() {
+        document.getElementById('receipt-overlay').style.display = 'none';
+    }
+
+    /** * =======================================================
+     * SECTION 6: SETTINGS SYSTEM
+     * =======================================================
+     */
+    function openSettings() {
+        renderEditList();
+        document.getElementById('settings-overlay').style.display = 'flex';
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-overlay').style.display = 'none';
+    }
+
+    function renderEditList() {
+        const container = document.getElementById('settings-content-area');
+        container.innerHTML = "";
+
+        Object.keys(RECYCLE_DB).forEach(cat => {
+            const catDiv = document.createElement('div');
+            catDiv.className = 'cat-section';
+            
+            let html = `<div class="cat-title">${cat}</div>`;
+            html += `
+                <div class="col-header">
+                    <div style="width:24px;"></div>
+                    <div style="flex:2;">ชื่อรายการ</div>
+                    <div style="flex:1;">ราคา</div>
+                    <div style="flex:1;">EF</div>
+                    <div style="flex:1;">แต้ม/กก.</div>
+                    <div style="width:30px;">ลบ</div>
+                </div>
+            `;
+            
+            RECYCLE_DB[cat].forEach((item, idx) => {
+                const isFirst = idx === 0;
+                const isLast = idx === RECYCLE_DB[cat].length - 1;
+                
+                html += `
+                    <div class="edit-row">
+                        <div class="sort-controls">
+                            <button class="btn-move" ${isFirst ? 'disabled' : ''} onclick="moveItem('${cat}', ${idx}, -1)">▲</button>
+                            <button class="btn-move" ${isLast ? 'disabled' : ''} onclick="moveItem('${cat}', ${idx}, 1)">▼</button>
+                        </div>
+                        <input type="text" class="edit-input edit-name" value="${item.name}" onchange="updateDB('${cat}', ${idx}, 'name', this.value)">
+                        <input type="number" class="edit-input edit-num" value="${item.price}" step="0.1" onchange="updateDB('${cat}', ${idx}, 'price', this.value)">
+                        <input type="number" class="edit-input edit-num" value="${item.ef}" step="0.0001" onchange="updateDB('${cat}', ${idx}, 'ef', this.value)">
+                        <input type="number" class="edit-input edit-num" value="${item.point}" step="1" onchange="updateDB('${cat}', ${idx}, 'point', this.value)">
+                        <button class="btn-row-del" onclick="deleteItem('${cat}', ${idx})">X</button>
+                    </div>
+                `;
+            });
+
+            html += `<button class="btn-cat-add" onclick="addItem('${cat}')">+ เพิ่มรายการในหมวด${cat}</button>`;
+            
+            catDiv.innerHTML = html;
+            container.appendChild(catDiv);
+        });
+    }
+
+    function updateDB(cat, idx, field, value) {
+        if(field === 'name') RECYCLE_DB[cat][idx][field] = value;
+        else RECYCLE_DB[cat][idx][field] = parseFloat(value) || 0;
+        saveDB(); 
+    }
+
+    function deleteItem(cat, idx) {
+        if(confirm(`ลบรายการ "${RECYCLE_DB[cat][idx].name}" ?`)) {
+            RECYCLE_DB[cat].splice(idx, 1);
+            saveDB();
+            renderEditList();
+        }
+    }
+
+    function addItem(cat) {
+        RECYCLE_DB[cat].push({ name: "รายการใหม่", price: 0, ef: 0, point: 0 });
+        saveDB();
+        renderEditList();
+    }
+    
+    function moveItem(cat, idx, dir) {
+        const arr = RECYCLE_DB[cat];
+        const newIdx = idx + dir;
+        if(newIdx >= 0 && newIdx < arr.length) {
+            [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+            saveDB();
+            renderEditList();
+        }
+    }
+
+    /** * =======================================================
+     * SECTION 7: UTILITIES
+     * =======================================================
+     */
+    function tryLoadImage(img) {
+        const exts = ['JPG', 'jpeg', 'png'];
+        const currentSrc = img.src;
+        if (currentSrc.endsWith('logo.jpg')) img.src = 'logo.JPG';
+        else if (currentSrc.endsWith('logo.JPG')) img.src = 'logo.jpeg';
+        else if (currentSrc.endsWith('logo.jpeg')) img.src = 'logo.png';
+        else img.style.display = 'none';
+    }
+
+    /** * =======================================================
+     * SECTION 8: INITIALIZATION
+     * =======================================================
+     */
+    
+    // Attach Event Listeners
+    document.getElementById('btnAddRow').addEventListener('click', addNewRow);
+    document.getElementById('vatCheck').addEventListener('change', reCalculate);
+    document.getElementById('btnSave').addEventListener('click', generateImage);
+
+    // Auto-Save Event Delegation (Detects changes anywhere in container)
+    const container = document.querySelector('.container');
+    container.addEventListener('input', (e) => {
+        if(e.target.tagName === 'INPUT') saveSession();
+    });
+    container.addEventListener('change', (e) => {
+        if(e.target.tagName === 'SELECT' || e.target.type === 'checkbox') saveSession();
+    });
+
+    // Start App
+    window.addEventListener('DOMContentLoaded', () => {
+        // 1. Try to restore session
+        const savedData = localStorage.getItem(AUTOSAVE_KEY);
+        if(savedData) {
+            restoreSession();
+        } else {
+            addNewRow(); // Start fresh if no save
+        }
+    });
+
+</script>
+
+</body>
+</html>
